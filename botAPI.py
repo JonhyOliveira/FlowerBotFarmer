@@ -1,7 +1,8 @@
-from typing import Union, Callable, TypeVar
+from typing import Union, Callable
 
 import requests
-import time, datetime
+import time
+import datetime
 import logging
 import parse
 
@@ -16,6 +17,9 @@ _plant_info_message_parser = \
 
 
 class Plant(object):
+    """
+    Represents a plant
+    """
 
     def __init__(self, name: str, plant_type: str, level: int, max_level: int, death_timer: str, alive_time: str):
         self.name = name
@@ -63,13 +67,12 @@ def _parse_time_message(message: str) -> time.struct_time:
     return datetime.datetime(1990, 1, day=int(day), hour=int(hour), minute=int(minute), second=int(second))
 
 
-def _parse_wait_message(message: dict) -> \
+def _parse_watering_message(message: dict) -> \
         Union[tuple[bool, Union[time.struct_time, time.struct_time]], tuple[bool, None]]:
     """
-    Parses the wait message from the bot feedback
-
-    :param message: message to parse
-    :return: parsed wait time
+    Parses the watering message
+    :param message: the message to parse
+    :return: a tuple containing (watering result [True/False], wait time)
     """
     log.debug(f"Parsing wait message: {message}")
 
@@ -92,11 +95,22 @@ def _parse_wait_message(message: dict) -> \
 
 
 def _parse_exp_message(message: dict) -> Union[int, None]:
+    """
+    Parses the exp message
+    :param message: the message to parse
+    :return: the exp integer value contained in the message
+    """
+
     log.debug(f"Parsing exp message: {message}")
     return int(_exp_message_parser.parse(message["embeds"][0]["description"])["val"].replace(",", ""))
 
 
 def _parse_shop_message(message: dict) -> Union[dict, None]:
+    """
+    Parses the shop message
+    :param message: the message to parse
+    :return: a dictionary representing the shop offers and their prices in the format {offer: exp_price}
+    """
     log.debug(f"Parsing shop message: {message}")
 
     fields = message.get("embeds")[0].get("fields")
@@ -123,6 +137,11 @@ def _parse_shop_message(message: dict) -> Union[dict, None]:
 
 
 def _parse_plants_message(message: dict) -> list[Plant]:
+    """
+    Pareses the plants message
+    :param message: the message to parse
+    :return: a list of the plants specified in the message
+    """
     log.debug(f"Parsing plants message: {message}")
 
     u_plants: list[dict[str, str]] = message.get("embeds")[0].get("fields")
@@ -161,7 +180,7 @@ class WateringCan:
         :return: tuple with first argument indicating if the command was successful, if unsuccessful second argument
         indicates the command remaining cooldown
         """
-        return self._issue_command_get_feedback(f"p.water {plant_name}", _parse_wait_message)
+        return self._issue_command_get_feedback(f"p.water {plant_name}", _parse_watering_message)
 
     def get_exp(self) -> Union[int, None]:
         """

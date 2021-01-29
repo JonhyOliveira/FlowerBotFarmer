@@ -4,40 +4,34 @@ from navigation import Menu, TerminalMenu, Navigation, Nav
 import threading
 import toml
 import time
-import logging
 import random
-import os
-import platform
 import curses
+import logging
 
-clear_terminal = os.system("cls") if platform.system() == 'Windows' else os.system("clear")
-
-
-def string_progressbar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
+def string_progressbar(iteration: int, total: int, prefix: str = '', suffix: str = '', decimals: int = 1,
+                       length: int = 100, fill: chr = '█'):
     """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
+    :param iteration: the current iteration
+    :param total: the max iteration
+    :param prefix: the prefix to add to the progress bar
+    :param suffix: the suffix to add to the progress bar
+    :param decimals: how many decimal places to show in percentage
+    :param length: the length of the actual progress bar in characters (excludes prefix and suffix)
+    :param fill: the character to fill the progress bar with
+    :return: a string representing the progress bar
+    """""
     iteration = min(iteration, total)
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filled_length = int(length * iteration // total)
     bar = fill * filled_length + '-' * (length - filled_length)
 
     return f'{prefix}|{bar}| {percent}% {suffix}'
-    # Print New Line on Complete
-    # if iteration == total:
-    #    print()
 
 
 class PlantWorker(threading.Thread, Menu):
+    """
+    This class manages a plant and functions as a menu for showing plant info
+    """
     global wc
     global exit_event
 
@@ -148,6 +142,9 @@ class PlantWorker(threading.Thread, Menu):
 
 
 class PlantTracker(TerminalMenu):
+    """
+    This class tracks the current registered plants
+    """
     global threads
 
     def __init__(self, terminal_screen: curses.window):
@@ -160,6 +157,9 @@ class PlantTracker(TerminalMenu):
 
 
 class InfoScreen(Menu):
+    """
+    This class shows info about stuff
+    """
     global wc
 
     def __init__(self, terminal_screen: curses.window):
@@ -196,6 +196,9 @@ class InfoScreen(Menu):
 
 
 def setup_logging():
+    """
+    Sets up logging for the program
+    """
     logging.basicConfig(format='%(levelname)s[%(name)s:%(funcName)s at %(asctime)s] %(message)s',
                         datefmt='%m/%d/%y %I:%M:%S %p')
 
@@ -205,11 +208,19 @@ def setup_logging():
 
 
 def get_config() -> dict:
+    """
+    Returns a dict representation of the config file
+    :return: configurations dict
+    """
     with open("config.toml", "r") as f:
         return toml.load(f)
 
 
 def setup_curses_terminal() -> curses.window:
+    """
+    Sets up the curses' module terminal and returns the window created
+    :return: a new curses terminal window
+    """
     # setup terminal window
     stdscr = curses.initscr()
     stdscr.keypad(True)
