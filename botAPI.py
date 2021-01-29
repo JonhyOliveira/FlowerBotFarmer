@@ -15,27 +15,33 @@ _plant_info_message_parser = \
     parse.Parser("**{type}**{}level {level}/{max_level}.{}**{death_timer}**{}**{alive_time}**{}")
 
 
-class Plant:
+class Plant(object):
 
     def __init__(self, name: str, plant_type: str, level: int, max_level: int, death_timer: str, alive_time: str):
         self.name = name
         self.type = plant_type
         self.level = level
         self.max_level = max_level
-        self.death_timer = _parse_time_message(death_timer)
-        self.alive_time = _parse_time_message(alive_time)
+        self.death_timer = death_timer  # _parse_time_message(death_timer)
+        self.alive_time = alive_time  # _parse_time_message(alive_time)
 
     def __repr__(self):
         return f"Plant[name={self.name}, type={self.type}, level={self.level}/{self.max_level}]"
 
+    def __str__(self):
+        return f"Name: {self.name} ({self.type})\n" \
+               f"Nourishment {self.level}/{self.max_level}\n" \
+               f"Alive for {self.alive_time}\n" \
+               f"Death in {self.death_timer} if not watered\n"
+
 
 def _parse_time_message(message: str) -> time.struct_time:
-    # print("|", message, "|")
+    log.debug(f"Parsing time message: {message}")
 
     parseFormat = ""
 
     if "days" in message:
-        parseFormat += "{day} days"
+        parseFormat += " {day} days"
     if "hours" in message:
         parseFormat += " {hour} hours"
     if "minutes" in message:
@@ -43,12 +49,18 @@ def _parse_time_message(message: str) -> time.struct_time:
     if "seconds" in message:
         parseFormat += " {second} seconds"
 
-    # print("|", parseFormat, "|")
+    parseFormat = parseFormat.strip()
+    message = message.strip()
 
     p = parse.parse(parseFormat, message)
+    keys: dict = p.named.keys()
 
-    return datetime.datetime(1990, 1, day=int(p["day"]), hour=int(p["hour"]), minute=int(p["minute"]),
-                             second=int(p["second"]))
+    day = p["day"] if "day" in keys else 1
+    hour = p["hour"] if "hour" in keys else 0
+    minute = p["minute"] if "minute" in keys else 0
+    second = p["second"] if "second" in keys else 0
+
+    return datetime.datetime(1990, 1, day=int(day), hour=int(hour), minute=int(minute), second=int(second))
 
 
 def _parse_wait_message(message: dict) -> \
@@ -59,6 +71,7 @@ def _parse_wait_message(message: dict) -> \
     :param message: message to parse
     :return: parsed wait time
     """
+    log.debug(f"Parsing wait message: {message}")
 
     if message.get("embeds"):
         return True, None
@@ -79,10 +92,13 @@ def _parse_wait_message(message: dict) -> \
 
 
 def _parse_exp_message(message: dict) -> Union[int, None]:
-    return int(_exp_message_parser.parse(message["embeds"][0]["description"])["val"])
+    log.debug(f"Parsing exp message: {message}")
+    return int(_exp_message_parser.parse(message["embeds"][0]["description"])["val"].replace(",", ""))
 
 
 def _parse_shop_message(message: dict) -> Union[dict, None]:
+    log.debug(f"Parsing shop message: {message}")
+
     fields = message.get("embeds")[0].get("fields")
 
     s_plants: dict = fields[0]
@@ -107,6 +123,7 @@ def _parse_shop_message(message: dict) -> Union[dict, None]:
 
 
 def _parse_plants_message(message: dict) -> list[Plant]:
+    log.debug(f"Parsing plants message: {message}")
 
     u_plants: list[dict[str, str]] = message.get("embeds")[0].get("fields")
 
@@ -115,12 +132,13 @@ def _parse_plants_message(message: dict) -> list[Plant]:
     for u_plant in u_plants:
         name = u_plant.get("name")
         info = _plant_info_message_parser.parse(u_plant.get("value"))
-        _plants.append(Plant(name, info["type"], info["level"], info["max_level"], info["death_timer"], info["alive_time"]))
+        _plants.append(
+            Plant(name, info["type"], int(info["level"]), int(info["max_level"]), info["death_timer"], info["alive_time"]))
 
     return _plants
 
 
-class Flower:
+class WateringCan:
     DISCORD_API_VERSION = 8
     ENDPOINT = f"https://discord.com/api/v{DISCORD_API_VERSION}"
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " \
@@ -128,7 +146,7 @@ class Flower:
 
     def __init__(self, user_token, channel):
         """
-        API for interactions with the FlowerBot
+        API for user interactions with the FlowerBot
         :param user_token: the token of the user interacting with the bot
         :param channel: the channel the bot is on
         """
@@ -167,7 +185,7 @@ class Flower:
 
         message_id = self._issue_command(command)
 
-        time.sleep(.5)  # wait for bot feedback
+        time.sleep(1)  # wait for bot feedback
 
         return self._get_feedback(message_id, feedback_parser)
 
@@ -186,6 +204,13 @@ class Flower:
         # sends water plant message
         send_r = requests.post(f"{self.ENDPOINT}/channels/{self.channel}/messages",
                                headers=self._build_discord_header_data(), json=message_content)
+
+        if send_r.status_code >= 299:
+            log.critical(f"Error sending command: status code={send_r.status_code}")
+
+        if "id" not in send_r.json():
+            log.error(f"Message ID not found, json=\n{send_r.json()}")
+            return -1
 
         return send_r.json()["id"]  # command message id
 
@@ -214,4 +239,3 @@ class Flower:
             "authorization": self.user_token,
             "origin": "discord.com"
         }
-
