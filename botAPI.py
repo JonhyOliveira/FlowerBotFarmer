@@ -1,4 +1,4 @@
-from typing import Union, Callable
+from typing import Union, Callable, Tuple, List, Dict
 
 import requests
 import time
@@ -68,7 +68,7 @@ def _parse_time_message(message: str) -> time.struct_time:
 
 
 def _parse_watering_message(message: dict) -> \
-        Union[tuple[bool, Union[time.struct_time, time.struct_time]], tuple[bool, None]]:
+        Union[Tuple[bool, Union[time.struct_time, time.struct_time]], Tuple[bool, None]]:
     """
     Parses the watering message
     :param message: the message to parse
@@ -136,7 +136,7 @@ def _parse_shop_message(message: dict) -> Union[dict, None]:
     return shop
 
 
-def _parse_plants_message(message: dict) -> list[Plant]:
+def _parse_plants_message(message: dict) -> List[Plant]:
     """
     Pareses the plants message
     :param message: the message to parse
@@ -144,7 +144,7 @@ def _parse_plants_message(message: dict) -> list[Plant]:
     """
     log.debug(f"Parsing plants message: {message}")
 
-    u_plants: list[dict[str, str]] = message.get("embeds")[0].get("fields")
+    u_plants: List[Dict[str, str]] = message.get("embeds")[0].get("fields")
 
     _plants = []
 
@@ -173,7 +173,7 @@ class WateringCan:
         self.channel = channel
 
     def water_plant(self, plant_name) -> \
-            Union[tuple[bool, Union[time.struct_time, time.struct_time]], tuple[bool, None]]:
+            Union[Tuple[bool, Union[time.struct_time, time.struct_time]], Tuple[bool, None]]:
         """
         Waters a plant
         :param plant_name: the name of the plant to water
@@ -188,13 +188,13 @@ class WateringCan:
         """
         return self._issue_command_get_feedback("p.exp", _parse_exp_message)
 
-    def get_shop(self) -> Union[dict[str, int], None]:
+    def get_shop(self) -> Union[Dict[str, int], None]:
         """
         :return: dictionary representing the available plants on the shop and their prices
         """
         return self._issue_command_get_feedback("p.shop", _parse_shop_message)
 
-    def get_plants(self) -> Union[tuple[Plant], None]:
+    def get_plants(self) -> Union[Tuple[Plant], None]:
         """
         :return: a list of the user plants
         """
@@ -228,7 +228,7 @@ class WateringCan:
             log.critical(f"Error sending command: status code={send_r.status_code}")
 
         if "id" not in send_r.json():
-            log.error(f"Message ID not found, json=\n{send_r.json()}")
+            log.error(f"Message ID not found\n{send_r.json()}")
             return -1
 
         return send_r.json()["id"]  # command message id
@@ -256,5 +256,6 @@ class WateringCan:
             "content-type": "application/json",
             "user-agent": self.USER_AGENT,
             "authorization": self.user_token,
-            "origin": "discord.com"
+            "origin": "https://discord.com"
+
         }

@@ -1,5 +1,5 @@
 import curses
-from typing import Union
+from typing import Union, Dict
 
 
 class Nav(object):
@@ -62,7 +62,7 @@ class Navigation(Nav):
 
 class TerminalMenu(Menu):
 
-    def __init__(self, terminal_screen: curses.window, m_choices: dict[str, Union[tuple, Menu]] = None, title=None):
+    def __init__(self, terminal_screen: curses.window, m_choices: Dict[str, Union[tuple, Menu]] = None, title=None):
         super(TerminalMenu, self).__init__(terminal_screen, title)
         self.choices = m_choices
 
@@ -108,7 +108,7 @@ class TerminalMenu(Menu):
                 elif isinstance(c, Menu):
                     n.navigate_down_to(c)
 
-        elif choice == 8:  # backspace
+        elif choice == curses.KEY_BACKSPACE:  # backspace
             n.navigate_up()
 
 

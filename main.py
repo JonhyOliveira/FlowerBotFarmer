@@ -8,6 +8,7 @@ import random
 import curses
 import logging
 
+
 def string_progressbar(iteration: int, total: int, prefix: str = '', suffix: str = '', decimals: int = 1,
                        length: int = 100, fill: chr = '█'):
     """
@@ -119,7 +120,7 @@ class PlantWorker(threading.Thread, Menu):
 
         time_left = self.start_sleep + self.sleep_time - time.time()
 
-        p_cooldown = string_progressbar(time.time() - self.start_sleep, self.sleep_time,
+        p_cooldown = string_progressbar(int(time.time() - self.start_sleep), int(self.sleep_time),
                                         suffix=f" {int(time_left)} seconds left ({int(time_left//60)} "
                                                f"minutes and {int(time_left%60)} seconds)",
                                         length=curses.COLS // 3)
@@ -137,7 +138,7 @@ class PlantWorker(threading.Thread, Menu):
             back
         )
 
-        if self.terminal.getch() == 8:
+        if self.terminal.getch() == curses.KEY_BACKSPACE:
             n.navigate_up()
 
 
@@ -191,7 +192,7 @@ class InfoScreen(Menu):
             u_exp
         )
 
-        if self.terminal.getch() == 8:  # backspace
+        if self.terminal.getch() == curses.KEY_BACKSPACE:  # backspace
             n.navigate_up()
 
 
@@ -293,7 +294,7 @@ if __name__ == '__main__':
             curses.A_STANDOUT
         )
         nav.show()
-
         stdscr.refresh()
         time.sleep(.1)
         stdscr.clear()
+        curses.update_lines_cols()
